@@ -3,12 +3,6 @@ import streamlit as st
 
 biolume_df = pd.read_csv('All - All.csv')
 
-biolume_df = pd.DataFrame({
-    'Employee Name': ['Alice', 'Bob', 'Alice', 'Bob', 'Alice'],
-    'Shop Name': ['Shop A', 'Shop B', 'Shop A', 'Shop C', 'Shop B'],
-    'Order Date': pd.to_datetime(['2023-01-10', '2023-02-15', '2023-03-01', '2023-03-20', '2023-04-05'])
-})
-
 # Function to generate the sales report
 def generate_sales_report(employee_name):
     # Filter data by Employee Name
