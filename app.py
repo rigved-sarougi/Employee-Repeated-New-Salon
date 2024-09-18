@@ -1,16 +1,18 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
-# Assuming 'biolume_df' is loaded and available globally
-# You can replace this with your actual data loading logic
-biolume_df = pd.read_csv('All - All.csv', parse_dates=['Order Date'])
+# Assuming biolume_df is your dataframe
+# Replace this with how you load the actual data
+# biolume_df = pd.read_csv('your_data.csv')
 
+# Function to generate the sales report
 def generate_sales_report(employee_name):
     # Filter data by Employee Name
     filtered_df = biolume_df[biolume_df['Employee Name'] == employee_name]
 
     if filtered_df.empty:
-        return pd.DataFrame()  # Return an empty DataFrame if no data found
+        st.write(f"No data found for employee: {employee_name}")
+        return
 
     # Extract the year-month for easier grouping
     filtered_df['Year-Month'] = filtered_df['Order Date'].dt.to_period('M')
@@ -48,18 +50,32 @@ def generate_sales_report(employee_name):
     # Fill NaN values with 0 (for months where no new or repeated shops exist)
     final_report.fillna(0, inplace=True)
 
-    return final_report
+    # Display the report
+    st.write(f"Sales Report for Employee: {employee_name}")
+    st.dataframe(final_report)
 
-# Streamlit App
-st.title('Sales Report Generator')
+# Streamlit app interface
+def choose_employee_and_generate_report():
+    # List all unique employee names
+    employee_names = biolume_df['Employee Name'].unique()
 
-employee_name = st.text_input('Enter Employee Name:')
+    # Create a dropdown for employee selection
+    employee_name = st.selectbox("Select an employee", employee_names)
 
-if employee_name:
-    report = generate_sales_report(employee_name)
-    
-    if report.empty:
-        st.write(f"No data found for employee: {employee_name}")
-    else:
-        st.write(f"Sales Report for Employee: {employee_name}")
-        st.dataframe(report)
+    if st.button("Generate Report"):
+        generate_sales_report(employee_name)
+
+# Streamlit app main function
+def main():
+    st.title("Sales Report Generator")
+
+    # Load your dataframe (replace with actual data loading logic)
+    global biolume_df
+
+    biolume_df = pd.read_csv('All - All.csv')
+
+    choose_employee_and_generate_report()
+
+# Run the Streamlit app
+if __name__ == "__main__":
+    main()
