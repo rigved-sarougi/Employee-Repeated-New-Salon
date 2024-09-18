@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 
-# Assuming biolume_df is already loaded; otherwise, load it here
-@st.cache
+# Use st.cache_data for caching data loading
+@st.cache_data
 def load_data():
     # Load your DataFrame here
     # For example: return pd.read_csv('path_to_your_file.csv')
