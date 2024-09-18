@@ -3,6 +3,9 @@ import pandas as pd
 
 biolume_df = pd.read_csv('All - All.csv')
 
+# Ensure 'Order Date' is in datetime format
+biolume_df['Order Date'] = pd.to_datetime(biolume_df['Order Date'], errors='coerce')
+
 # Function to generate the sales report
 def generate_sales_report(employee_name):
     # Filter data by Employee Name
@@ -60,4 +63,3 @@ selected_employee = st.selectbox('Select an Employee:', employee_names)
 # Button to generate the report
 if st.button('Generate Report'):
     generate_sales_report(selected_employee)
-
