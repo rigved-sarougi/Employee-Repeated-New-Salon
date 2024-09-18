@@ -3,7 +3,6 @@ import pandas as pd
 
 biolume_df = pd.read_csv('All - All.csv')
 
-# Ensure 'Order Date' is in datetime format
 biolume_df['Order Date'] = pd.to_datetime(biolume_df['Order Date'], format='%d-%m-%Y', errors='coerce')
 
 # Function to generate the sales report
