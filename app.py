@@ -31,6 +31,8 @@ def generate_sales_report(employee_name):
     # Generate the report
     report = filtered_df.groupby('Year-Month').agg(
         total_shops=('Shop Name', 'nunique'),  # Total unique shops where sales happened
+        total_sales=('Order Value', 'sum'),    # Total sales per month
+        average_sales=('Order Value', 'mean')  # Average sales per month
     ).reset_index()
 
     # Count the number of repeated shops per month (excluding the first month of each shop)
@@ -57,6 +59,10 @@ def generate_sales_report(employee_name):
     new_sales = new_shops['Order Value'].sum()
     average_new_sales = new_shops['Order Value'].mean() if not new_shops.empty else 0
 
+    # Calculate monthly total and average monthly sales
+    monthly_sales = filtered_df.groupby(filtered_df['Year-Month'])['Order Value'].sum().reset_index(name='monthly_sales')
+    avg_monthly_sales = monthly_sales['monthly_sales'].mean()
+
     # Metrics Table
     sales_metrics = {
         'Total Sales': [total_sales],
@@ -64,7 +70,8 @@ def generate_sales_report(employee_name):
         'Repeat Order Total Sales': [repeat_order_total_sales],
         'Average Repeat Order Sales': [average_repeat_order_sales],
         'New Sales': [new_sales],
-        'Average New Sales': [average_new_sales]
+        'Average New Sales': [average_new_sales],
+        'Average Monthly Sales': [avg_monthly_sales]
     }
 
     sales_metrics_df = pd.DataFrame(sales_metrics)
@@ -85,6 +92,10 @@ def generate_sales_report(employee_name):
     # Display Sales Metrics
     st.write("Sales Metrics")
     st.dataframe(sales_metrics_df)
+
+    # Display Monthly Sales Data
+    st.write("Monthly Sales")
+    st.dataframe(monthly_sales)
 
     # Display Shop Category Breakdown
     st.write("Shop Category Breakdown")
