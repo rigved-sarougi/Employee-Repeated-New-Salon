@@ -1,10 +1,6 @@
 import pandas as pd
 import streamlit as st
 
-# Assuming biolume_df is your dataframe
-# Replace this with how you load the actual data
-# biolume_df = pd.read_csv('your_data.csv')
-
 # Function to generate the sales report
 def generate_sales_report(employee_name):
     # Filter data by Employee Name
@@ -17,23 +13,46 @@ def generate_sales_report(employee_name):
     # Ensure 'Order Date' is in datetime format
     filtered_df['Order Date'] = pd.to_datetime(filtered_df['Order Date'], errors='coerce')
 
+    # Remove rows with invalid dates
+    filtered_df = filtered_df.dropna(subset=['Order Date'])
+
     # Extract the year-month for easier grouping
     filtered_df['Year-Month'] = filtered_df['Order Date'].dt.to_period('M')
+
+    # DEBUG: Display the filtered dataframe
+    st.write("Filtered Data:")
+    st.dataframe(filtered_df)
 
     # Find the first order date (month) for each shop
     first_order_date = filtered_df.groupby('Shop Name')['Order Date'].min().reset_index()
 
+    # DEBUG: Display first order date by shop
+    st.write("First Order Date by Shop:")
+    st.dataframe(first_order_date)
+
     # Merge the first order date back with the original dataframe
     merged_df = pd.merge(filtered_df, first_order_date, on='Shop Name', suffixes=('', '_first'))
+
+    # DEBUG: Display the merged dataframe
+    st.write("Merged Data (with First Order Date):")
+    st.dataframe(merged_df)
 
     # Identify new shops: where the order date matches their first order date
     new_shops = merged_df[merged_df['Order Date'] == merged_df['Order Date_first']]
 
+    # DEBUG: Display new shops
+    st.write("New Shops:")
+    st.dataframe(new_shops)
+
     # Identify repeated shops: shops with more than one unique order
     unique_orders = filtered_df.drop_duplicates(subset=['Shop Name', 'Order Date'])
-    
+
     # Ensure that the repeated orders are from months *after* the shop's first order month
     unique_orders_after_first = unique_orders[unique_orders['Year-Month'] > unique_orders['Shop Name'].map(first_order_date.set_index('Shop Name')['Order Date'].dt.to_period('M'))]
+
+    # DEBUG: Display unique orders after first order
+    st.write("Repeated Shops:")
+    st.dataframe(unique_orders_after_first)
 
     # Generate the report
     report = filtered_df.groupby('Year-Month').agg(
@@ -53,7 +72,7 @@ def generate_sales_report(employee_name):
     # Fill NaN values with 0 (for months where no new or repeated shops exist)
     final_report.fillna(0, inplace=True)
 
-    # Display the report
+    # Display the final report
     st.write(f"Sales Report for Employee: {employee_name}")
     st.dataframe(final_report)
 
@@ -74,9 +93,8 @@ def main():
 
     # Load your dataframe (replace with actual data loading logic)
     global biolume_df
-    # For example, load data from a CSV file
+    # Sample data for testing, replace this with actual data loading logic
     biolume_df = pd.read_csv('All - All.csv')
-
 
     choose_employee_and_generate_report()
 
