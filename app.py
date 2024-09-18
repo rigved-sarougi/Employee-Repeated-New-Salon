@@ -1,16 +1,16 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 
-biolume_df = pd.read_csv('All - All.csv')
+# Assuming 'biolume_df' is loaded and available globally
+# You can replace this with your actual data loading logic
+biolume_df = pd.read_csv('All - All.csv', parse_dates=['Order Date'])
 
-# Function to generate the sales report
 def generate_sales_report(employee_name):
     # Filter data by Employee Name
     filtered_df = biolume_df[biolume_df['Employee Name'] == employee_name]
 
     if filtered_df.empty:
-        st.write(f"No data found for employee: {employee_name}")
-        return
+        return pd.DataFrame()  # Return an empty DataFrame if no data found
 
     # Extract the year-month for easier grouping
     filtered_df['Year-Month'] = filtered_df['Order Date'].dt.to_period('M')
@@ -25,7 +25,6 @@ def generate_sales_report(employee_name):
     new_shops = merged_df[merged_df['Order Date'] == merged_df['Order Date_first']]
 
     # Identify repeated shops: shops with more than one unique order
-    # Exclude orders from the same month as their first order
     unique_orders = filtered_df.drop_duplicates(subset=['Shop Name', 'Order Date'])
     
     # Ensure that the repeated orders are from months *after* the shop's first order month
@@ -49,24 +48,18 @@ def generate_sales_report(employee_name):
     # Fill NaN values with 0 (for months where no new or repeated shops exist)
     final_report.fillna(0, inplace=True)
 
-    # Display the report
-    st.write(f"Sales Report for Employee: {employee_name}")
-    st.dataframe(final_report)
+    return final_report
 
-# Streamlit app function
-def app():
-    st.title("Sales Report Generator")
+# Streamlit App
+st.title('Sales Report Generator')
 
-    # List all unique employee names
-    employee_names = biolume_df['Employee Name'].unique()
+employee_name = st.text_input('Enter Employee Name:')
 
-    # Dropdown to select employee
-    employee_name = st.selectbox("Select Employee", employee_names)
-
-    # Button to generate report
-    if st.button("Generate Report"):
-        generate_sales_report(employee_name)
-
-# Run the app
-if __name__ == "__main__":
-    app()
+if employee_name:
+    report = generate_sales_report(employee_name)
+    
+    if report.empty:
+        st.write(f"No data found for employee: {employee_name}")
+    else:
+        st.write(f"Sales Report for Employee: {employee_name}")
+        st.dataframe(report)
