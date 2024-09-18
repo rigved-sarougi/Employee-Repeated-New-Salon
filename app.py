@@ -1,11 +1,9 @@
 import streamlit as st
 import pandas as pd
-
 biolume_df = pd.read_csv('All - All.csv')
-
 biolume_df['Order Date'] = pd.to_datetime(biolume_df['Order Date'], format='%d-%m-%Y', errors='coerce')
 
-# Function to generate the sales report
+# Function to generate sales report with metrics and category breakdown
 def generate_sales_report(employee_name):
     # Filter data by Employee Name
     filtered_df = biolume_df[biolume_df['Employee Name'] == employee_name]
@@ -44,13 +42,53 @@ def generate_sales_report(employee_name):
     # Merge all results into a single report
     final_report = pd.merge(report, repeated_shops_per_month, on='Year-Month', how='left')
     final_report = pd.merge(final_report, new_shops_per_month, on='Year-Month', how='left')
-
-    # Fill NaN values with 0 (for months where no new or repeated shops exist)
     final_report.fillna(0, inplace=True)
+
+    # Sales Metrics Calculation
+    total_sales = filtered_df['Order Value'].sum()
+    average_sales = filtered_df['Order Value'].mean()
+
+    # Repeat Order Sales
+    repeat_orders = merged_df[merged_df['Order Date'] > merged_df['Order Date_first']]
+    repeat_order_total_sales = repeat_orders['Order Value'].sum()
+    average_repeat_order_sales = repeat_orders['Order Value'].mean() if not repeat_orders.empty else 0
+
+    # New Shop Sales
+    new_sales = new_shops['Order Value'].sum()
+    average_new_sales = new_shops['Order Value'].mean() if not new_shops.empty else 0
+
+    # Metrics Table
+    sales_metrics = {
+        'Total Sales': [total_sales],
+        'Average Sales': [average_sales],
+        'Repeat Order Total Sales': [repeat_order_total_sales],
+        'Average Repeat Order Sales': [average_repeat_order_sales],
+        'New Sales': [new_sales],
+        'Average New Sales': [average_new_sales]
+    }
+
+    sales_metrics_df = pd.DataFrame(sales_metrics)
+
+    # Shop Category Breakdown
+    repeated_shop_names = repeat_orders['Shop Name'].unique()
+    new_shop_names = new_shops['Shop Name'].unique()
+
+    shop_categories = pd.DataFrame({
+        'Shop Name': pd.concat([pd.Series(repeated_shop_names), pd.Series(new_shop_names)], ignore_index=True).drop_duplicates(),
+        'Category': pd.concat([pd.Series(['Repeat'] * len(repeated_shop_names)), pd.Series(['New'] * len(new_shop_names))], ignore_index=True)
+    })
 
     # Display the report in Streamlit
     st.write(f"Sales Report for Employee: {employee_name}")
     st.dataframe(final_report)
+
+    # Display Sales Metrics
+    st.write("Sales Metrics")
+    st.dataframe(sales_metrics_df)
+
+    # Display Shop Category Breakdown
+    st.write("Shop Category Breakdown")
+    st.dataframe(shop_categories)
 
 # Streamlit App UI
 st.title("Employee Sales Report")
