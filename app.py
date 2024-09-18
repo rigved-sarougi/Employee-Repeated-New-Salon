@@ -1,6 +1,10 @@
 import pandas as pd
 import streamlit as st
 
+# Assuming biolume_df is your dataframe
+# Replace this with how you load the actual data
+# biolume_df = pd.read_csv('your_data.csv')
+
 # Function to generate the sales report
 def generate_sales_report(employee_name):
     # Filter data by Employee Name
@@ -10,54 +14,49 @@ def generate_sales_report(employee_name):
         st.write(f"No data found for employee: {employee_name}")
         return
 
-    # Ensure 'Order Date' is in datetime format, coerce errors to NaT (Not a Time)
+    # Ensure 'Order Date' is in datetime format
     filtered_df['Order Date'] = pd.to_datetime(filtered_df['Order Date'], errors='coerce')
 
-    # Remove rows with invalid or missing dates (NaT)
-    filtered_df = filtered_df.dropna(subset=['Order Date'])
-
-    # DEBUG: Check if any 'Order Date' values are still missing after conversion
-    st.write("Checking for missing or invalid Order Dates after conversion:")
-    st.write(filtered_df[filtered_df['Order Date'].isna()])
+    # Debugging: Check the data types and some sample data
+    st.write("Filtered Data Types:")
+    st.write(filtered_df.dtypes)
+    st.write("Filtered Data Sample:")
+    st.write(filtered_df.head())
 
     # Extract the year-month for easier grouping
     filtered_df['Year-Month'] = filtered_df['Order Date'].dt.to_period('M')
 
-    # DEBUG: Display the filtered dataframe with Order Date and Year-Month
-    st.write("Filtered Data (after processing Order Dates):")
-    st.dataframe(filtered_df)
-
     # Find the first order date (month) for each shop
     first_order_date = filtered_df.groupby('Shop Name')['Order Date'].min().reset_index()
 
-    # DEBUG: Display first order date by shop
-    st.write("First Order Date by Shop:")
-    st.dataframe(first_order_date)
+    # Debugging: Check the first order date
+    st.write("First Order Date:")
+    st.write(first_order_date)
 
     # Merge the first order date back with the original dataframe
     merged_df = pd.merge(filtered_df, first_order_date, on='Shop Name', suffixes=('', '_first'))
 
+    # Debugging: Check the merged dataframe
+    st.write("Merged DataFrame Sample:")
+    st.write(merged_df.head())
+
     # Identify new shops: where the order date matches their first order date
     new_shops = merged_df[merged_df['Order Date'] == merged_df['Order Date_first']]
 
-    # DEBUG: Display new shops
-    st.write("New Shops:")
-    st.dataframe(new_shops)
-
     # Identify repeated shops: shops with more than one unique order
     unique_orders = filtered_df.drop_duplicates(subset=['Shop Name', 'Order Date'])
-
+    
     # Ensure that the repeated orders are from months *after* the shop's first order month
     unique_orders_after_first = unique_orders[unique_orders['Year-Month'] > unique_orders['Shop Name'].map(first_order_date.set_index('Shop Name')['Order Date'].dt.to_period('M'))]
-
-    # DEBUG: Display repeated shops
-    st.write("Repeated Shops:")
-    st.dataframe(unique_orders_after_first)
 
     # Generate the report
     report = filtered_df.groupby('Year-Month').agg(
         total_shops=('Shop Name', 'nunique'),  # Total unique shops where sales happened
     ).reset_index()
+
+    # Debugging: Check the report
+    st.write("Report DataFrame:")
+    st.write(report)
 
     # Count the number of repeated shops per month (excluding the first month of each shop)
     repeated_shops_per_month = unique_orders_after_first.groupby('Year-Month')['Shop Name'].nunique().reset_index(name='repeated_shops')
@@ -72,7 +71,7 @@ def generate_sales_report(employee_name):
     # Fill NaN values with 0 (for months where no new or repeated shops exist)
     final_report.fillna(0, inplace=True)
 
-    # Display the final report
+    # Display the report
     st.write(f"Sales Report for Employee: {employee_name}")
     st.dataframe(final_report)
 
@@ -93,7 +92,7 @@ def main():
 
     # Load your dataframe (replace with actual data loading logic)
     global biolume_df
-    # Sample data for testing, replace this with actual data loading logic
+    # For example, load data from a CSV file
     biolume_df = pd.read_csv('All - All.csv')
 
     choose_employee_and_generate_report()
