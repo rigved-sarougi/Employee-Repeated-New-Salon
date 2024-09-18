@@ -14,6 +14,9 @@ def generate_sales_report(employee_name):
         st.write(f"No data found for employee: {employee_name}")
         return
 
+    # Ensure 'Order Date' is in datetime format
+    filtered_df['Order Date'] = pd.to_datetime(filtered_df['Order Date'], errors='coerce')
+
     # Extract the year-month for easier grouping
     filtered_df['Year-Month'] = filtered_df['Order Date'].dt.to_period('M')
 
@@ -71,8 +74,9 @@ def main():
 
     # Load your dataframe (replace with actual data loading logic)
     global biolume_df
-
+    # For example, load data from a CSV file
     biolume_df = pd.read_csv('All - All.csv')
+
 
     choose_employee_and_generate_report()
 
