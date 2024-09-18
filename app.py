@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
+
 biolume_df = pd.read_csv('All - All.csv')
 biolume_df['Order Date'] = pd.to_datetime(biolume_df['Order Date'], format='%d-%m-%Y', errors='coerce')
 
-# Function to generate sales report with metrics and category breakdown
+# Function to generate the sales report
 def generate_sales_report(employee_name):
     # Filter data by Employee Name
     filtered_df = biolume_df[biolume_df['Employee Name'] == employee_name]
@@ -31,8 +32,7 @@ def generate_sales_report(employee_name):
     # Generate the report
     report = filtered_df.groupby('Year-Month').agg(
         total_shops=('Shop Name', 'nunique'),  # Total unique shops where sales happened
-        total_sales=('Order Value', 'sum'),    # Total sales per month
-        average_sales=('Order Value', 'mean')  # Average sales per month
+        total_sales=('Order Value', 'sum'),    # Total sales for the month
     ).reset_index()
 
     # Count the number of repeated shops per month (excluding the first month of each shop)
@@ -44,62 +44,33 @@ def generate_sales_report(employee_name):
     # Merge all results into a single report
     final_report = pd.merge(report, repeated_shops_per_month, on='Year-Month', how='left')
     final_report = pd.merge(final_report, new_shops_per_month, on='Year-Month', how='left')
+
+    # Fill NaN values with 0 (for months where no new or repeated shops exist)
     final_report.fillna(0, inplace=True)
 
-    # Sales Metrics Calculation
-    total_sales = filtered_df['Order Value'].sum()
-    average_sales = filtered_df['Order Value'].mean()
+    # Calculate average monthly sales
+    avg_monthly_sales = final_report['total_sales'].mean()
 
-    # Repeat Order Sales
-    repeat_orders = merged_df[merged_df['Order Date'] > merged_df['Order Date_first']]
-    repeat_order_total_sales = repeat_orders['Order Value'].sum()
-    average_repeat_order_sales = repeat_orders['Order Value'].mean() if not repeat_orders.empty else 0
-
-    # New Shop Sales
-    new_sales = new_shops['Order Value'].sum()
-    average_new_sales = new_shops['Order Value'].mean() if not new_shops.empty else 0
-
-    # Calculate monthly total and average monthly sales
-    monthly_sales = filtered_df.groupby(filtered_df['Year-Month'])['Order Value'].sum().reset_index(name='monthly_sales')
-    avg_monthly_sales = monthly_sales['monthly_sales'].mean()
-
-    # Metrics Table
-    sales_metrics = {
-        'Total Sales': [total_sales],
-        'Average Sales': [average_sales],
-        'Repeat Order Total Sales': [repeat_order_total_sales],
-        'Average Repeat Order Sales': [average_repeat_order_sales],
-        'New Sales': [new_sales],
-        'Average New Sales': [average_new_sales],
-        'Average Monthly Sales': [avg_monthly_sales]
-    }
-
-    sales_metrics_df = pd.DataFrame(sales_metrics)
-
-    # Shop Category Breakdown
-    repeated_shop_names = repeat_orders['Shop Name'].unique()
-    new_shop_names = new_shops['Shop Name'].unique()
-
-    shop_categories = pd.DataFrame({
-        'Shop Name': pd.concat([pd.Series(repeated_shop_names), pd.Series(new_shop_names)], ignore_index=True).drop_duplicates(),
-        'Category': pd.concat([pd.Series(['Repeat'] * len(repeated_shop_names)), pd.Series(['New'] * len(new_shop_names))], ignore_index=True)
-    })
-
-    # Display the report in Streamlit
+    # 1st Table: Monthly Sales, Average Monthly Sale, Total Sales
     st.write(f"Sales Report for Employee: {employee_name}")
-    st.dataframe(final_report)
+    st.write("**Monthly Sales of Every Month, Average Monthly Sale, Total Sales of Total Shops, Repeated Shops, and New Shops**")
+    st.table(final_report[['Year-Month', 'total_sales', 'repeated_shops', 'new_shops']])
+    st.write(f"Average Monthly Sales: {avg_monthly_sales:.2f}")
+    st.write(f"Total Sales: {final_report['total_sales'].sum():.2f}")
 
-    # Display Sales Metrics
-    st.write("Sales Metrics")
-    st.dataframe(sales_metrics_df)
+    # 2nd Table: Month-wise New and Repeated Shop Names
+    st.write("**Month-wise New and Repeated Shop Names**")
 
-    # Display Monthly Sales Data
-    st.write("Monthly Sales")
-    st.dataframe(monthly_sales)
+    # Get new shop names per month
+    new_shops_list = new_shops.groupby('Year-Month')['Shop Name'].apply(list).reset_index(name='new_shops')
 
-    # Display Shop Category Breakdown
-    st.write("Shop Category Breakdown")
-    st.dataframe(shop_categories)
+    # Get repeated shop names per month
+    repeated_shops_list = unique_orders_after_first.groupby('Year-Month')['Shop Name'].apply(list).reset_index(name='repeated_shops')
+
+    # Merge new and repeated shop names into one table
+    shops_names_report = pd.merge(new_shops_list, repeated_shops_list, on='Year-Month', how='outer').fillna('[]')
+
+    st.table(shops_names_report)
 
 # Streamlit App UI
 st.title("Employee Sales Report")
