@@ -10,17 +10,21 @@ def generate_sales_report(employee_name):
         st.write(f"No data found for employee: {employee_name}")
         return
 
-    # Ensure 'Order Date' is in datetime format
+    # Ensure 'Order Date' is in datetime format, coerce errors to NaT (Not a Time)
     filtered_df['Order Date'] = pd.to_datetime(filtered_df['Order Date'], errors='coerce')
 
-    # Remove rows with invalid dates
+    # Remove rows with invalid or missing dates (NaT)
     filtered_df = filtered_df.dropna(subset=['Order Date'])
+
+    # DEBUG: Check if any 'Order Date' values are still missing after conversion
+    st.write("Checking for missing or invalid Order Dates after conversion:")
+    st.write(filtered_df[filtered_df['Order Date'].isna()])
 
     # Extract the year-month for easier grouping
     filtered_df['Year-Month'] = filtered_df['Order Date'].dt.to_period('M')
 
-    # DEBUG: Display the filtered dataframe
-    st.write("Filtered Data:")
+    # DEBUG: Display the filtered dataframe with Order Date and Year-Month
+    st.write("Filtered Data (after processing Order Dates):")
     st.dataframe(filtered_df)
 
     # Find the first order date (month) for each shop
@@ -32,10 +36,6 @@ def generate_sales_report(employee_name):
 
     # Merge the first order date back with the original dataframe
     merged_df = pd.merge(filtered_df, first_order_date, on='Shop Name', suffixes=('', '_first'))
-
-    # DEBUG: Display the merged dataframe
-    st.write("Merged Data (with First Order Date):")
-    st.dataframe(merged_df)
 
     # Identify new shops: where the order date matches their first order date
     new_shops = merged_df[merged_df['Order Date'] == merged_df['Order Date_first']]
@@ -50,7 +50,7 @@ def generate_sales_report(employee_name):
     # Ensure that the repeated orders are from months *after* the shop's first order month
     unique_orders_after_first = unique_orders[unique_orders['Year-Month'] > unique_orders['Shop Name'].map(first_order_date.set_index('Shop Name')['Order Date'].dt.to_period('M'))]
 
-    # DEBUG: Display unique orders after first order
+    # DEBUG: Display repeated shops
     st.write("Repeated Shops:")
     st.dataframe(unique_orders_after_first)
 
