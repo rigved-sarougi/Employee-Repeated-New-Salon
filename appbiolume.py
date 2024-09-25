@@ -26,8 +26,9 @@ def generate_sales_report(employee_name):
     # Identify new shops: where the order date matches their first order date
     new_shops = merged_df[merged_df['Order Date'] == merged_df['Order Date_first']]
 
-    # Identify repeated shops: where the Year-Month is later than their first order date's Year-Month
-    repeated_shops = merged_df[merged_df['Year-Month'] > merged_df['Order Date_first'].dt.to_period('M')]
+    # Identify repeated shops: only if they have more than one order after the first order
+    repeated_shops = merged_df[(merged_df['Order Date'] > merged_df['Order Date_first']) & 
+                               (merged_df.groupby('Shop Name')['Shop Name'].transform('count') > 1)]
 
     # Generate the report for total, repeated, and new shops
     report = filtered_df.groupby('Year-Month').agg(
